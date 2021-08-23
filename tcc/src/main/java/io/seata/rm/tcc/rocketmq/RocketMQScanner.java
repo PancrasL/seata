@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 
+import io.seata.core.context.RootContext;
+
 public class RocketMQScanner implements BeanPostProcessor {
     public static Logger LOGGER = LoggerFactory.getLogger(RocketMQScanner.class);
 
@@ -16,9 +18,9 @@ public class RocketMQScanner implements BeanPostProcessor {
 
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-        if (bean instanceof DefaultMQProducer) {
+        if (bean instanceof DefaultMQProducer && RootContext.getXID() != null) {
             LOGGER.info("转换为DefaultMQProducer的代理类");
-            return new RocketMQProducerProxy((DefaultMQProducer) bean);
+            return RocketMQProducerProxy.getProxyInstance((DefaultMQProducer) bean);
         }
         return bean;
     }
