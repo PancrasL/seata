@@ -18,9 +18,9 @@ public class RocketMQScanner implements BeanPostProcessor {
 
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-        if (bean instanceof DefaultMQProducer && RootContext.getXID() != null) {
-            LOGGER.info("转换为DefaultMQProducer的代理类");
-            return RocketMQProducerProxy.getProxyInstance((DefaultMQProducer) bean);
+        if (bean instanceof DefaultMQProducer) {
+            LOGGER.info("替换为DefaultMQProducer的代理类");
+            return RocketMQProducerProxy.getProxyInstance(bean);
         }
         return bean;
     }

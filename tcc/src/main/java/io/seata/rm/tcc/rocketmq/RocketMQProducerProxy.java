@@ -8,6 +8,8 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
+import io.seata.core.context.RootContext;
+
 public class RocketMQProducerProxy implements InvocationHandler {
     public static Logger LOGGER = LoggerFactory.getLogger(RocketMQScanner.class);
 
@@ -19,12 +21,18 @@ public class RocketMQProducerProxy implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        // TODO 仅代理half方法
+        // 不在全局事务中，调用代理对象的原方法
+        if(!RootContext.inGlobalTransaction()){
+            return method.invoke(target);
+        }
+
+        // 在全局事务中，做一些额外的操作
+        // do something
         LOGGER.info("invoke method: [{}]", method.getName());
         return method.invoke(target);
     }
 
-    public static Object getProxyInstance(DefaultMQProducer producer) {
-        return Proxy.newProxyInstance(producer.getClass().getClassLoader(), producer.getClass().getInterfaces(), new RocketMQProducerProxy(producer));
+    public static Object getProxyInstance(Object obj) {
+        return Proxy.newProxyInstance(obj.getClass().getClassLoader(), obj.getClass().getInterfaces(), new RocketMQProducerProxy((DefaultMQProducer) obj));
     }
 }
