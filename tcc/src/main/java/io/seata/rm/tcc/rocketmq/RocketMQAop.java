@@ -5,20 +5,22 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 
+import io.seata.core.context.RootContext;
+
 @Aspect
 public class RocketMQAop {
-    @Around("execution(* org.apache.rocketmq.client.producer.DefaultMQProducer.send(..))")
-    public SendResult doSomething(ProceedingJoinPoint point) throws Throwable {
-        System.out.println("@Around：执行目标方法之前...");
-        //访问目标方法的参数：
-        Object[] args = point.getArgs();
-        if (args != null && args.length > 0 && args[0].getClass() == String.class) {
-            args[0] = "改变后的参数1";
+    TCCRocketMQ tccRocketMQ = new TCCRocketMQImpl();
+
+    @Around("execution(* org.apache.rocketmq.client.producer.DefaultMQProducer.send(org.apache.rocketmq.common.message.Message))")
+    // TODO：将RocketMQ纳入到全局事务中
+    public SendResult send(ProceedingJoinPoint point) throws Throwable {
+        if (RootContext.inGlobalTransaction()) {
+            System.out.printf("In Global Transaction");
+            Object returnValue = point.proceed(point.getArgs());
+            return (SendResult) returnValue;
+        } else {
+            System.out.printf("Not In Global Transaction");
+            return (SendResult) point.proceed(point.getArgs());
         }
-        //用改变后的参数执行目标方法
-        Object returnValue = point.proceed(args);
-        System.out.println("@Around：执行目标方法之后...");
-        System.out.println("@Around：被织入的目标对象为：" + point.getTarget());
-        return (SendResult) returnValue;
     }
 }
